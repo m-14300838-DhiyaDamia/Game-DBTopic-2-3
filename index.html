@@ -917,6 +917,35 @@
             }
         ];
 
+        // Bank aktif: soalan dan pilihan jawapan diacak setiap kali misi baharu bermula
+        let activeQuestionBank = [];
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function prepareRandomQuestions() {
+            activeQuestionBank = shuffleArray(questionBank).map(question => {
+                const shuffledOptions = shuffleArray(
+                    question.options.map((text, originalIndex) => ({
+                        text,
+                        isCorrect: originalIndex === question.answer
+                    }))
+                );
+
+                return {
+                    ...question,
+                    options: shuffledOptions.map(option => option.text),
+                    answer: shuffledOptions.findIndex(option => option.isCorrect)
+                };
+            });
+        }
+
         // Forest Recovery Stage Descriptions (10 Stages based on score)
         const forestStages = [
             { scoreMin: 0, title: "Fasa 1: Kebakaran Gambut Kalimantan Marak (IPU > 350)", desc: "Kebakaran hebat di Kalimantan. Jerebu tebal ditiup angin ke Malaysia." },
@@ -1584,6 +1613,7 @@ waterBombs.push({
 
         function startGameplay() {
             showScreen('screenC');
+            prepareRandomQuestions();
             resetGameState();
             initCanvasEngine();
             loadQuestion(0);
@@ -1706,13 +1736,13 @@ waterBombs.push({
         }
 
         function loadQuestion(index) {
-            if (index < 0 || index >= questionBank.length) return;
+            if (index < 0 || index >= activeQuestionBank.length) return;
 
             currentQuestionIndex = index;
             isAnswerLocked = false;
             updateHUDAndVisuals();
 
-            const qData = questionBank[index];
+            const qData = activeQuestionBank[index];
 
             document.getElementById('feedbackContainer').classList.add('hidden');
 
@@ -1752,7 +1782,7 @@ waterBombs.push({
             if (isAnswerLocked) return;
             isAnswerLocked = true;
 
-            const qData = questionBank[currentQuestionIndex];
+            const qData = activeQuestionBank[currentQuestionIndex];
             userAnswers[currentQuestionIndex] = selectedIndex;
 
             const isCorrect = (selectedIndex === qData.answer);
@@ -1811,7 +1841,7 @@ waterBombs.push({
         }
 
         function nextQuestion() {
-            if (currentQuestionIndex + 1 < questionBank.length) {
+            if (currentQuestionIndex + 1 < activeQuestionBank.length) {
                 loadQuestion(currentQuestionIndex + 1);
             } else {
                 finishGame();
@@ -1912,7 +1942,7 @@ waterBombs.push({
             const reviewList = document.getElementById('reviewList');
             reviewList.innerHTML = '';
 
-            questionBank.forEach((qData, idx) => {
+            activeQuestionBank.forEach((qData, idx) => {
                 const userAns = userAnswers[idx];
                 const isCorrect = (userAns === qData.answer);
 
